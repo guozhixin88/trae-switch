@@ -1,6 +1,6 @@
 # Trae Switch
 
-**Trae Switch** 是一个专为 Trae IDE 设计的工具，通过 DNS 劫持 + 本地反向代理，让 Trae IDE 支持第三方大模型服务商 API（如阿里百炼 Coding Plan、kimi coding plan等）。详细使用教程：https://mp.weixin.qq.com/s/W_Z_nbrO7ioU8upcq4KkOw
+**Trae Switch** 是一个专为 Trae IDE 设计的工具，通过 DNS 劫持 + 本地反向代理，让 Trae IDE 支持第三方大模型服务商 API（如阿里百炼 Coding Plan、kimi coding plan 等）。详细使用教程：https://mp.weixin.qq.com/s/W_Z_nbrO7ioU8upcq4KkOw
 
 ## 🚀 功能特点
 
@@ -9,12 +9,12 @@
 - **自动 Hosts 配置**：将 `api.openai.com` 重定向到 `127.0.0.1`
 - **CA 证书管理**：生成并安装本地 CA 证书，用于 HTTPS 拦截
 - **实时状态监控**：显示代理运行状态和当前激活的服务商
-- **不需要输入key**：通过在trae中配置key，在本工具不需要输入任何apikey
+- **不需要输入 key**：通过在 trae 中配置 key，在本工具不需要输入任何 apikey
 
 ## 📋 支持的服务商
 
-- ✅ 阿里百炼、Kimi等 Coding Plan
-- ✅ 其他支持 OpenAI 协议的第三方api服务商
+- ✅ 阿里百炼、Kimi 等 Coding Plan
+- ✅ 其他支持 OpenAI 协议的第三方 api 服务商
 
 ## 🔧 技术架构
 
@@ -35,24 +35,48 @@
 
 ### macOS 用户
 
-#### 方法一：从源码构建
-1. 确保已安装 Go 和 Node.js
-2. 克隆仓库：
+#### 前置要求
+- Go 1.22+ 
+- Node.js 16+
+- Xcode Command Line Tools
+
+#### 方法一：从源码构建（推荐）
+1. **安装 Go**（如果未安装）：
+   ```bash
+   brew install go
+   ```
+
+2. **克隆仓库**：
    ```bash
    git clone https://github.com/guozhixin88/trae-switch.git
    cd trae-switch
    ```
-3. 安装 Wails CLI：
+
+3. **安装 Wails CLI**：
    ```bash
    go install github.com/wailsapp/wails/v2/cmd/wails@latest
    ```
-4. 构建应用：
+
+4. **安装前端依赖**：
+   ```bash
+   cd frontend
+   npm install
+   cd ..
+   ```
+
+5. **构建应用**：
    ```bash
    wails build
    ```
-5. 运行（需要管理员权限以绑定 443 端口和修改系统配置）：
+   构建完成后，应用位于 `build/bin/trae-switch.app`
+
+6. **运行应用**（需要管理员权限）：
    ```bash
-   sudo ./build/bin/Trae\ Switch.app/Contents/MacOS/Trae\ Switch
+   sudo ./build/bin/trae-switch.app/Contents/MacOS/trae-switch
+   ```
+   或
+   ```bash
+   sudo wails dev
    ```
 
 ### Windows 用户
@@ -61,13 +85,17 @@
 1. 从 [Releases](https://github.com/yourusername/trae-switch/releases) 页面下载最新版本的 `trae-switch.exe`
 2. 以管理员身份运行程序
 
-### 方法二：从源码构建
-1. 克隆仓库：
+#### 方法二：从源码构建
+1. 确保已安装 Go 1.22+ 和 Node.js 16+
+2. 克隆仓库：
    ```bash
    git clone https://github.com/yourusername/trae-switch.git
    cd trae-switch
    ```
-2. 安装依赖并编译
+3. 安装 Wails CLI：`go install github.com/wailsapp/wails/v2/cmd/wails@latest`
+4. 安装前端依赖：`cd frontend && npm install`
+5. 构建应用：`wails build`
+6. 运行：`./build/bin/trae-switch.exe`
 
 ## 🛠️ 使用方法
 
@@ -92,6 +120,77 @@
 5. 手动输入你想要使用的模型名称
 6. 关闭 auto mode 并选择刚添加的模型
 7. 开始使用！
+
+---
+
+## 📖 快速开始指南（以阿里云百炼为例）
+
+### 第一步：获取 API Key
+1. 访问 [阿里云百炼控制台](https://bailian.console.aliyun.com/)
+2. 登录阿里云账号
+3. 进入 **API-KEY 管理** 页面
+4. 创建新的 API Key（格式：`sk-sp-xxxxx`）
+5. ⚠️ **复制并妥善保存**（只显示一次）
+
+### 第二步：配置 Trae Switch
+1. 启动 Trae Switch 应用
+2. 点击「+ 添加」添加服务商
+3. 填写以下信息：
+   - **名称**：`阿里云百炼`
+   - **API 地址**：`https://coding.dashscope.aliyuncs.com/v1`
+   - **模型列表**：
+     - `qwen3.5-plus`
+     - `qwen3-coder-plus`
+     - `qwen3-coder-next`
+     - `kimi-k2.5`
+     - `glm-5`
+     - （或其他你需要的模型）
+4. 点击「保存」
+5. 确保「Hosts 配置」和「CA 证书」显示已启用
+6. 点击「启动」按钮
+
+### 第三步：在 Trae IDE 中配置
+1. 打开 Trae IDE
+2. 进入 **Settings** → **AI Model**（或类似设置）
+3. 添加新模型：
+   - **Provider（服务商）**：选择 **OpenAI**
+   - **Base URL**：`https://api.openai.com/v1`（保持默认，不要修改！）
+   - **API Key**：输入第一步获取的阿里云 API Key
+   - **Model Name**：输入 `qwen3.5-plus`
+4. 保存配置
+
+### 第四步：开始使用
+1. 在 Trae IDE 聊天窗口中
+2. 关闭 **Auto Mode**
+3. 选择你刚添加的 `qwen3.5-plus` 模型
+4. 发送消息测试
+
+---
+
+## ⚠️ 重要注意事项
+
+### macOS 用户必读
+
+1. **443 端口权限**
+   - 应用需要监听 443 端口，必须使用 `sudo` 运行
+   - 如果提示端口被占用，请关闭占用 443 端口的程序
+
+2. **VPN 冲突问题**
+   - 某些 VPN 可能会劫持 DNS 或修改路由表
+   - 如遇连接问题，请尝试暂时关闭 VPN
+   - 或者在 VPN 设置中将 `api.openai.com` 添加到白名单/不走 VPN
+
+3. **系统缓存**
+   - 如遇 DNS 解析问题，可执行以下命令清除缓存：
+     ```bash
+     sudo dscacheutil -flushcache
+     sudo killall -HUP mDNSResponder
+     ```
+
+4. **证书信任**
+   - 首次运行时，系统可能会弹出证书警告
+   - 这是正常的，因为应用需要安装自签名证书
+   - 在应用内点击「安装证书」即可
 
 ## ⚙️ 配置文件
 
@@ -131,6 +230,13 @@
 - Hosts 配置是否成功
 - CA 证书是否安装
 
+### Q: 如何检查 443 端口是否被占用？
+**A:** 执行以下命令：
+```bash
+sudo lsof -i :443 -sTCP:LISTEN
+```
+如果有其他程序占用，请关闭该程序后再试。
+
 ### Q: macOS 上如何卸载证书？
 **A:** 运行以下命令：
 ```bash
@@ -138,26 +244,67 @@ sudo security delete-certificate -c "Trae Switch Root CA" /Library/Keychains/Sys
 ```
 
 ### Q: macOS 上如何恢复 hosts？
-**A:** 程序退出时会自动恢复，也可以手动编辑 `/etc/hosts` 删除 Trae Switch 相关条目
+**A:** 程序退出时会自动恢复，也可以手动编辑 `/etc/hosts` 删除 Trae Switch 相关条目：
+```bash
+sudo nano /etc/hosts
+# 删除以下行：
+# === Trae Switch Start ===
+127.0.0.1 api.openai.com
+# === Trae Switch End ===
+```
 
 ### Q: 模型不显示怎么办？
 **A:** 请确保：
 - 已在服务商配置中添加了模型
 - 已选择了正确的服务商
 - 代理已成功启动
+- **关闭 VPN 后重试**（VPN 可能会劫持 DNS）
+
+### Q: 提示 "Incorrect model name" 错误
+**A:** 请检查：
+1. Trae Switch 是否正常运行
+2. hosts 是否正确：`grep api.openai.com /etc/hosts` 应返回 `127.0.0.1 api.openai.com`
+3. 在 Trae IDE 中，Base URL 必须是 `https://api.openai.com/v1`（不是阿里云地址！）
+4. 尝试清除 DNS 缓存：
+   ```bash
+   sudo dscacheutil -flushcache
+   sudo killall -HUP mDNSResponder
+   ```
+
+### Q: 如何验证代理是否正常工作？
+**A:** 执行以下命令测试：
+```bash
+curl -k https://127.0.0.1/v1/models
+```
+如果返回包含模型列表的 JSON，说明代理正常。
 
 ### Q: API Key 如何获取？
-**A:** API Key 需要从对应服务商的官方网站获取
+**A:** API Key 需要从对应服务商的官方网站获取：
+- 阿里云百炼：https://bailian.console.aliyun.com/
+- Kimi：https://platform.moonshot.cn/
 
 ### Q: 支持哪些模型？
-**A:** 支持所有支持openai接口协议服务商提供的模型，只要在配置中添加对应的模型 ID 即可。
+**A:** 支持所有支持 OpenAI 接口协议服务商提供的模型，只要在配置中添加对应的模型 ID 即可。
+
+### Q: 如何配置多个服务商？
+**A:** 可以添加多个服务商配置，通过 `active_provider` 字段切换当前使用的服务商。在应用界面中点击对应的服务商即可激活。
+
+### Q: VPN 会影响使用吗？
+**A:** 会！某些 VPN 会：
+- 修改系统 DNS 设置
+- 劫持所有 HTTPS 流量
+- 导致 `api.openai.com` 的请求不经过本地代理
+
+**解决方案**：
+1. 暂时关闭 VPN
+2. 或在 VPN 设置中将 `api.openai.com` 添加到排除列表
 
 ## 🛡️ 安全性
 
 - **本地运行**：所有数据处理都在本地进行，不会上传任何数据
 - **自签名证书**：仅用于本地 HTTPS 拦截，不会影响其他应用
 - **Hosts 修改**：仅修改 `api.openai.com` 的解析，不影响其他域名
-- **不存储key**：通过在trae中配置key，在本工具不需要输入任何key
+- **不存储 key**：通过在 trae 中配置 key，在本工具不需要输入任何 key
 
 
 ## 📄 许可证

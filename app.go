@@ -6,12 +6,15 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"time"
 
 	"trae-switch/internal/cert"
 	"trae-switch/internal/config"
 	"trae-switch/internal/hosts"
 	"trae-switch/internal/proxy"
 	"trae-switch/internal/truststore"
+
+	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 type App struct {
@@ -20,10 +23,13 @@ type App struct {
 	hostsManager *hosts.HostsManager
 	trustManager *truststore.TrustStoreManager
 	proxyServer  *proxy.ProxyServer
+	autoStart    bool // 是否启用自动启动
 }
 
 func NewApp() *App {
-	return &App{}
+	return &App{
+		autoStart: true, // 默认启用自动启动
+	}
 }
 
 func (a *App) startup(ctx context.Context) {
@@ -55,6 +61,86 @@ func (a *App) startup(ctx context.Context) {
 	}
 
 	log.Println("Application started successfully")
+
+	// 自动启动逻辑
+	go a.autoStartProxy()
+}
+
+// autoStartProxy 在配置完成时自动启动代理
+func (a *App) autoStartProxy() {
+	// 等待一下让 UI 加载完成
+	select {
+	case <-a.ctx.Done():
+		return
+	case <-time.After(time.Second):
+	}
+
+	// 检查是否已经启动
+	if a.IsProxyRunning() {
+		return
+	}
+
+	// 检查配置是否完成
+	isSet, _ := a.hostsManager.IsSet()
+	isInstalled, _ := a.trustManager.IsInstalled()
+	providers := config.GetProviders()
+
+	// 如果配置已完成且有服务商，自动启动
+	if isSet && isInstalled && len(providers) > 0 {
+		log.Println("Auto-starting proxy...")
+
+		// 启动代理
+		if err := a.certManager.GenerateServerCert("api.openai.com"); err != nil {
+			log.Printf("Failed to generate server cert: %v", err)
+			return
+		}
+
+		a.proxyServer.SetCertificate(
+			a.certManager.GetServerCertPEM(),
+			a.certManager.GetServerKeyPEM(),
+		)
+
+		if err := a.proxyServer.Start(a.ctx); err != nil {
+			log.Printf("Failed to auto-start proxy: %v", err)
+			return
+		}
+
+		log.Println("Proxy auto-started successfully")
+
+		// 显示通知
+		runtime.EventsEmit(a.ctx, "auto-start-notification", map[string]interface{}{
+			"title":   "Trae Switch",
+			"message": "代理已自动启动",
+		})
+	}
+}
+
+// onBeforeClose 在窗口关闭前调用，隐藏窗口而不是退出
+func (a *App) onBeforeClose(ctx context.Context) (prevent bool) {
+	// 隐藏窗口而不是退出
+	runtime.WindowHide(ctx)
+	// 返回 true 阻止默认关闭行为
+	return true
+}
+
+// Quit 真正退出应用
+func (a *App) Quit(ctx context.Context) {
+	log.Println("Quitting application...")
+
+	// 停止代理
+	if a.IsProxyRunning() {
+		if err := a.StopProxy(); err != nil {
+			log.Printf("Failed to stop proxy: %v", err)
+		}
+	}
+
+	// 退出应用
+	runtime.Quit(ctx)
+}
+
+// ShowMainWindow 显示主窗口
+func (a *App) ShowMainWindow(ctx context.Context) {
+	runtime.WindowShow(ctx)
 }
 
 func (a *App) GetStatus() map[string]interface{} {

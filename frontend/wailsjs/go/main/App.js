@@ -50,6 +50,10 @@ export function QuickStop() {
   return window['go']['main']['App']['QuickStop']();
 }
 
+export function Quit(arg1) {
+  return window['go']['main']['App']['Quit'](arg1);
+}
+
 export function RestoreHosts() {
   return window['go']['main']['App']['RestoreHosts']();
 }
@@ -60,6 +64,10 @@ export function SetActiveProvider(arg1) {
 
 export function SetHosts() {
   return window['go']['main']['App']['SetHosts']();
+}
+
+export function ShowMainWindow(arg1) {
+  return window['go']['main']['App']['ShowMainWindow'](arg1);
 }
 
 export function StartProxy() {

@@ -59,6 +59,17 @@
 
     await refreshStatus()
     await loadProviders()
+
+    // 监听自动启动通知
+    window.runtime.EventsOn('auto-start-notification', (data) => {
+      if (data && data.title) {
+        // 显示成功提示
+        success = data.message
+        setTimeout(() => {
+          success = ''
+        }, 3000)
+      }
+    })
   })
 
   function toggleTheme() {
@@ -294,6 +305,14 @@
     }
   }
 
+  function quitApp() {
+    window.go.main.App.Quit()
+  }
+
+  function minimizeWindow() {
+    window.go.main.App.WindowHide()
+  }
+
   $: adminWarning = !status.runningAsAdmin
   $: portWarning = !status.portAvailable && !status.proxyRunning
   $: primaryButtonDisabled = loading || (!status.proxyRunning && (adminWarning || portWarning))
@@ -317,7 +336,7 @@
         size="lg"
         on:click={handlePrimaryAction}
         disabled={primaryButtonDisabled}
-        className="col-span-3 w-full"
+        className="col-span-2 w-full"
       >
         {primaryButtonLabel}
       </Button>
@@ -340,6 +359,20 @@
             {item.label}
           </span>
         {/each}
+      </button>
+
+      <button
+        type="button"
+        on:click={quitApp}
+        class="col-span-1 flex h-11 items-center justify-center rounded-lg border border-destructive/50 bg-destructive/10 text-destructive transition-colors hover:bg-destructive/20"
+        title="退出应用"
+        aria-label="退出应用"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+          <polyline points="16 17 21 12 16 7"></polyline>
+          <line x1="21" y1="12" x2="9" y2="12"></line>
+        </svg>
       </button>
     </div>
 

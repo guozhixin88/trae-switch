@@ -23,3 +23,7 @@ Thumbs.db
 .env
 .env.*
 config.json
+
+# Launcher apps
+TraeSwitchLauncher.app/
+TraeSwitchStopper.app/

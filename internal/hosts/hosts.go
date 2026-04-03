@@ -18,7 +18,7 @@ const (
 )
 
 var (
-	ErrNotWindows = errors.New("this feature is only supported on Windows")
+	ErrNotAdmin = errors.New("administrator privileges required")
 )
 
 type HostsManager struct {

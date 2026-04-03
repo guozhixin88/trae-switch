@@ -22,7 +22,7 @@
 - **后端**：Go (Wails 框架)
 - **前端**：Svelte + Tailwind CSS
 - **网络**：HTTPS 代理服务器
-- **系统**：Windows 系统集成（Hosts 管理、证书安装）
+- **系统**：跨平台支持（Windows/macOS）
 
 ### 核心模块
 1. **代理服务器**：监听 443 端口，处理 OpenAI API 请求
@@ -33,7 +33,31 @@
 
 ## 📦 安装方法
 
-### 方法一：直接下载可执行文件
+### macOS 用户
+
+#### 方法一：从源码构建
+1. 确保已安装 Go 和 Node.js
+2. 克隆仓库：
+   ```bash
+   git clone https://github.com/guozhixin88/trae-switch.git
+   cd trae-switch
+   ```
+3. 安装 Wails CLI：
+   ```bash
+   go install github.com/wailsapp/wails/v2/cmd/wails@latest
+   ```
+4. 构建应用：
+   ```bash
+   wails build
+   ```
+5. 运行（需要管理员权限以绑定 443 端口和修改系统配置）：
+   ```bash
+   sudo ./build/bin/Trae\ Switch.app/Contents/MacOS/Trae\ Switch
+   ```
+
+### Windows 用户
+
+#### 方法一：直接下载可执行文件
 1. 从 [Releases](https://github.com/yourusername/trae-switch/releases) 页面下载最新版本的 `trae-switch.exe`
 2. 以管理员身份运行程序
 
@@ -102,10 +126,19 @@
 
 ### Q: 启动失败怎么办？
 **A:** 请检查：
-- 是否以管理员身份运行
+- 是否以管理员身份运行（macOS 需要使用 sudo）
 - 443 端口是否被占用
 - Hosts 配置是否成功
 - CA 证书是否安装
+
+### Q: macOS 上如何卸载证书？
+**A:** 运行以下命令：
+```bash
+sudo security delete-certificate -c "Trae Switch Root CA" /Library/Keychains/System.keychain
+```
+
+### Q: macOS 上如何恢复 hosts？
+**A:** 程序退出时会自动恢复，也可以手动编辑 `/etc/hosts` 删除 Trae Switch 相关条目
 
 ### Q: 模型不显示怎么办？
 **A:** 请确保：

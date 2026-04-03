@@ -60,17 +60,33 @@
     await refreshStatus()
     await loadProviders()
 
-    // 监听自动启动通知
-    window.runtime.EventsOn('auto-start-notification', (data) => {
-      if (data && data.title) {
-        // 显示成功提示
-        success = data.message
-        setTimeout(() => {
-          success = ''
-        }, 3000)
+    // 窗口获得焦点时刷新状态（用户切换回来时）
+    window.addEventListener('focus', handleWindowFocus)
+
+    // 监听自动启动成功/失败事件
+    window.runtime.EventsOn('auto-start-success', (msg) => {
+      if (msg) {
+        showSuccess(msg)
+        refreshStatus()
       }
     })
+
+    window.runtime.EventsOn('auto-start-error', (msg) => {
+      if (msg) {
+        showError(msg)
+        refreshStatus()
+      }
+    })
+
+    // 清理
+    return () => {
+      window.removeEventListener('focus', handleWindowFocus)
+    }
   })
+
+  function handleWindowFocus() {
+    refreshStatus()
+  }
 
   function toggleTheme() {
     const currentIndex = themes.findIndex((item) => item.value === theme)

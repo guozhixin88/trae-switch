@@ -17,19 +17,18 @@ import (
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
+const pidFile = "/tmp/trae-switch.pid"
+
 type App struct {
 	ctx          context.Context
 	certManager  *cert.CertificateManager
 	hostsManager *hosts.HostsManager
 	trustManager *truststore.TrustStoreManager
 	proxyServer  *proxy.ProxyServer
-	autoStart    bool // 是否启用自动启动
 }
 
 func NewApp() *App {
-	return &App{
-		autoStart: true, // 默认启用自动启动
-	}
+	return &App{}
 }
 
 func (a *App) startup(ctx context.Context) {
@@ -62,21 +61,40 @@ func (a *App) startup(ctx context.Context) {
 
 	log.Println("Application started successfully")
 
-	// 自动启动逻辑
+	// 写入 PID 文件
+	writePidFile()
+
+	// 启动一个 goroutine 来检查并自动启动代理
 	go a.autoStartProxy()
 }
 
-// autoStartProxy 在配置完成时自动启动代理
+// writePidFile 写入当前进程 PID 到文件
+func writePidFile() {
+	pid := os.Getpid()
+	if err := os.WriteFile(pidFile, []byte(fmt.Sprintf("%d", pid)), 0644); err != nil {
+		log.Printf("Failed to write pid file: %v", err)
+	}
+}
+
+// removePidFile 删除 PID 文件
+func removePidFile() {
+	if err := os.Remove(pidFile); err != nil {
+		log.Printf("Failed to remove pid file: %v", err)
+	}
+}
+
+// autoStartProxy 检查配置并自动启动代理
 func (a *App) autoStartProxy() {
-	// 等待一下让 UI 加载完成
+	// 等待 3 秒让 UI 完全加载
 	select {
 	case <-a.ctx.Done():
 		return
-	case <-time.After(time.Second):
+	case <-time.After(3 * time.Second):
 	}
 
 	// 检查是否已经启动
 	if a.IsProxyRunning() {
+		log.Println("Proxy already running, skipping auto-start")
 		return
 	}
 
@@ -85,13 +103,16 @@ func (a *App) autoStartProxy() {
 	isInstalled, _ := a.trustManager.IsInstalled()
 	providers := config.GetProviders()
 
+	log.Printf("Auto-start check: hostsSet=%v, certInstalled=%v, providers=%d", isSet, isInstalled, len(providers))
+
 	// 如果配置已完成且有服务商，自动启动
 	if isSet && isInstalled && len(providers) > 0 {
 		log.Println("Auto-starting proxy...")
 
-		// 启动代理
+		// 生成服务器证书
 		if err := a.certManager.GenerateServerCert("api.openai.com"); err != nil {
 			log.Printf("Failed to generate server cert: %v", err)
+			runtime.EventsEmit(a.ctx, "auto-start-error", "生成证书失败："+err.Error())
 			return
 		}
 
@@ -102,45 +123,15 @@ func (a *App) autoStartProxy() {
 
 		if err := a.proxyServer.Start(a.ctx); err != nil {
 			log.Printf("Failed to auto-start proxy: %v", err)
+			runtime.EventsEmit(a.ctx, "auto-start-error", "启动代理失败："+err.Error())
 			return
 		}
 
 		log.Println("Proxy auto-started successfully")
-
-		// 显示通知
-		runtime.EventsEmit(a.ctx, "auto-start-notification", map[string]interface{}{
-			"title":   "Trae Switch",
-			"message": "代理已自动启动",
-		})
+		runtime.EventsEmit(a.ctx, "auto-start-success", "代理已自动启动")
+	} else {
+		log.Println("Auto-start skipped: configuration incomplete")
 	}
-}
-
-// onBeforeClose 在窗口关闭前调用，隐藏窗口而不是退出
-func (a *App) onBeforeClose(ctx context.Context) (prevent bool) {
-	// 隐藏窗口而不是退出
-	runtime.WindowHide(ctx)
-	// 返回 true 阻止默认关闭行为
-	return true
-}
-
-// Quit 真正退出应用
-func (a *App) Quit(ctx context.Context) {
-	log.Println("Quitting application...")
-
-	// 停止代理
-	if a.IsProxyRunning() {
-		if err := a.StopProxy(); err != nil {
-			log.Printf("Failed to stop proxy: %v", err)
-		}
-	}
-
-	// 退出应用
-	runtime.Quit(ctx)
-}
-
-// ShowMainWindow 显示主窗口
-func (a *App) ShowMainWindow(ctx context.Context) {
-	runtime.WindowShow(ctx)
 }
 
 func (a *App) GetStatus() map[string]interface{} {
@@ -149,9 +140,9 @@ func (a *App) GetStatus() map[string]interface{} {
 	result := map[string]interface{}{
 		"runningAsAdmin":   truststore.IsRunningAsAdmin(),
 		"proxyRunning":     false,
-		"proxyPort":       443,
+		"proxyPort":        443,
 		"hostsSet":         false,
-		"certInstalled":   false,
+		"certInstalled":    false,
 		"portAvailable":    portAvailable,
 		"portProcess":      portProcess,
 		"activeProvider":   nil,
@@ -304,10 +295,10 @@ func (a *App) GetProviders() []map[string]interface{} {
 	result := make([]map[string]interface{}, 0, len(providers))
 	for i, p := range providers {
 		result = append(result, map[string]interface{}{
-			"index":    i,
-			"name":     p.Name,
+			"index":       i,
+			"name":        p.Name,
 			"openai_base": p.OpenAIBase,
-			"models":   p.Models,
+			"models":      p.Models,
 		})
 	}
 	return result
@@ -345,6 +336,10 @@ func (a *App) DeleteProvider(index int) error {
 
 func (a *App) shutdown(ctx context.Context) {
 	log.Println("Application shutting down...")
+
+	// 删除 PID 文件
+	removePidFile()
+
 	if a.IsProxyRunning() {
 		if err := a.StopProxy(); err != nil {
 			log.Printf("Failed to stop proxy: %v", err)

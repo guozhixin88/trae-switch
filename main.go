@@ -40,8 +40,7 @@ func main() {
 				Title:   "Trae Switch",
 				Message: "Trae Switch - Third-party LLM provider manager for Trae IDE",
 			},
-			DisableZoom:      false,
-			EnableDefaultKey: false,
+			DisableZoom: false,
 		},
 	})
 
